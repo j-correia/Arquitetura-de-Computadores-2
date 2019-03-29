@@ -1,0 +1,3 @@
+->tgz
+nome:nr_mec.s
+tar cvzf 76493.tgz 76493.s
