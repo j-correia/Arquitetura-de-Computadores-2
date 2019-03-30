@@ -1,5 +1,5 @@
 # João Manuel Bola Correia, 76493, P1
-# TPC1
+# TPC1, AC2
 # #define STR_MAX_SIZE 20
 # char *strcat(char *, char *);
 # char *strcpy(char *, char *);
