@@ -23,6 +23,6 @@ while:	beq $v0, 0, main 		# if($v0 == 0) goto main;
 	la $a0, msg			# printStr(msg)
 	ori $v0, $0, PRINT_STR		# printStr(msg)
 	syscall				# printStr(msg)
-	j main
+	j main				# } goto main
 endw:	ori $v0, $0, 0			# return 0;
 	jr $ra
