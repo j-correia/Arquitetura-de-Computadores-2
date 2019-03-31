@@ -4,6 +4,7 @@
 #	return 0;
 # }
 	.equ PRINT_STR, 8
+	.data
 msg:	.asciiz "AC2 - DETPIC32\n"
 	.text
 	.globl main
