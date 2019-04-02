@@ -13,13 +13,13 @@
 	.data
 msg1:	.asciiz "\nQual das Alíneas: "
 msg2:	.asciiz "\nPremir a tecla M volta ao menu."
-alna:	.asciiz "\nAlínea A."
-alnb:	.asciiz "\nAlínea B."
-alnc:	.asciiz "\nAlínea C."
-alnd:	.asciiz "\nAlínea D."
-alne:	.asciiz "\nAlínea E."
-alnf:	.asciiz "\nAlínea F."
-alng:	.asciiz "\nAlínea G."
+alnA:	.asciiz "\nAlínea A."
+alnB:	.asciiz "\nAlínea B."
+alnC:	.asciiz "\nAlínea C."
+alnD:	.asciiz "\nAlínea D."
+alnE:	.asciiz "\nAlínea E."
+alnF:	.asciiz "\nAlínea F."
+alnG:	.asciiz "\nAlínea G."
 	.text
 	.globl main
 main:	subu $sp, $sp, 4
