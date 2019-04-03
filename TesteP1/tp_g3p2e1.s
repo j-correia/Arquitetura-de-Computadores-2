@@ -147,47 +147,96 @@ alBe:	lw $ra, 0($sp)
 	addu $sp, $sp, 4
 	jr $ra
 	#
-alC:	la $a0, alnC
+alC:	subu $sp, $sp, 4
+	sw $ra, 0($sp)
+	la $a0, alnC
 	ori $v0, $0, printStr
 	syscall
-	ori $v0, $0, inkey		# $v0 = inkey()
+loopC:	ori $v0, $0, inkey		# $v0 = inkey()
 	syscall				# $v0 = inkey()
 	beq $v0, 'm', alCe		# if($v0 = 'm') goto exit1
 	beq $v0, 'M', alCe		# if($v0 = 'M') goto exit1
-alCe:	jr $ra
+	ori $a0, $0, 250		# delay(250)
+	jal delay			# delay(250)
+	lui $t1, SFR_BASE_HI		# rd
+	lw $t2, PORTB($t1)		# rd
+	andi $t2, $t2, 0x0008
+	srl $t2, $t2, 3			# mf
+	beq $t2, $0, loopCd
+loopCc:	bge $s0, 16, stTCc	
+	lui $t1, SFR_BASE_HI		# rd
+	lw $t2, LATE($t1)		# rd
+	andi $t2, $t2, 0xFFF0		# mf
+	andi $s0, $s0, 0x000F		# mf
+	or $t2, $t2, $s0		# mf
+	sw $t2, LATE($t1)		# wr
+	addu $s0, $s0, 1		# $s0++;
+	j loopC
+loopCd: blt $s0, 0, stTCd
+	lui $t1, SFR_BASE_HI		# rd
+	lw $t2, LATE($t1)		# rd
+	andi $t2, $t2, 0xFFF0		# mf
+	andi $s0, $s0, 0x000F		# mf
+	or $t2, $t2, $s0		# mf
+	sw $t2, LATE($t1)		# wr
+	subu $s0, $s0, 1		# $s0--;
+	j loopC
+stTCc:	ori $s0, $0, 0
+	j loopCc
+stTCd:	ori $s0, $0, 15
+	j loopCd
+alCe:	lw $ra, 0($sp)
+	addu $sp, $sp, 4	
+	jr $ra
 	#
-alD:	la $a0, alnD
+alD:	subu $sp, $sp, 4
+	sw $ra, 0($sp)
+	la $a0, alnD
 	ori $v0, $0, printStr
 	syscall
 	ori $v0, $0, inkey		# $v0 = inkey()
 	syscall				# $v0 = inkey()
 	beq $v0, 'm', alDe		# if($v0 = 'm') goto exit1
 	beq $v0, 'M', alDe		# if($v0 = 'M') goto exit1
-alDe:	jr $ra
+alDe:	lw $ra, 0($sp)
+	addu $sp, $sp, 4
+	jr $ra
 	#
-alE:	la $a0, alnE
+alE:	subu $sp, $sp, 4
+	sw $ra, 0($sp)
+	la $a0, alnE
 	ori $v0, $0, printStr
 	syscall
 	ori $v0, $0, inkey		# $v0 = inkey()
 	syscall				# $v0 = inkey()
 	beq $v0, 'm', alEe		# if($v0 = 'm') goto exit1
 	beq $v0, 'M', alEe		# if($v0 = 'M') goto exit1
-alEe:	jr $ra
+alEe:	lw $ra, 0($sp)
+	addu $sp, $sp, 4
+	jr $ra
 	#
-alF:	la $a0, alnF
+alF:	subu $sp, $sp, 4
+	sw $ra, 0($sp)
+	la $a0, alnF
 	ori $v0, $0, printStr
 	syscall
 	ori $v0, $0, inkey		# $v0 = inkey()
 	syscall				# $v0 = inkey()
 	beq $v0, 'm', alFe		# if($v0 = 'm') goto exit1
 	beq $v0, 'M', alFe		# if($v0 = 'M') goto exit1
-alFe:	jr $ra
+alFe:	lw $ra, 0($sp)
+	addu $sp, $sp, 4
+	jr $ra
 	#
-alG:	la $a0, alnG
+alG:	subu $sp, $sp, 4
+	sw $ra, 0($sp)
+	la $a0, alnG
 	ori $v0, $0, printStr
 	syscall
 	ori $v0, $0, inkey		# $v0 = inkey()
 	syscall				# $v0 = inkey()
 	beq $v0, 'm', alGe		# if($v0 = 'm') goto exit1
 	beq $v0, 'M', alGe		# if($v0 = 'M') goto exit1
-alGe:	jr $ra
+alGe:	lw $ra, 0($sp)
+	addu $sp, $sp, 4
+	jr $ra
