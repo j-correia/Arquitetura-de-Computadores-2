@@ -66,7 +66,6 @@ int main(void)
 		// 250ms (4 samples/second)
 		if(cnt % 25 == 0)
 		{
-			voltage = 0;
 			// Start A/D conversion
 			AD1CON1bits.ASAM = 1;	// Start Conversion
 		}
@@ -82,6 +81,7 @@ int main(void)
 // rsi
 void _int_(27) isr_adc(void)
 {
+	voltage = 0;
 	int  *p = (int *)(&ADC1BUF0);	
 	for(; p <= (int *)&ADC1BUF7; p+=4) // (8-1) amostras
 	{
