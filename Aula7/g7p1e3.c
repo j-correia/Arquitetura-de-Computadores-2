@@ -1,5 +1,5 @@
 #include <detpic32.h>
-
+int flag = 0;
 int main(void)
 {
 	// Configure T3 with interrupts enable
@@ -17,7 +17,11 @@ int main(void)
 
 void _int_(12) isr_T3(void)	// Timer 3 vector
 {
-	putChar('.');
+	if(flag == 1)
+	{
+		putChar('.');
+	}
+	flag = !flag;
 	// Reset T3 interrupt flag
 	IFS0bits.T3IF = 0;
 }
