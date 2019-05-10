@@ -85,7 +85,7 @@ int main(void)
 	EnableInterrupts();
 	while(1)
 	{
-		unsigned int portVal = (PORTBbits.RB1 + PORTBbits.RB0) && 0x0003;
+		unsigned int portVal = ((PORTBbits.RB1<<1) + PORTBbits.RB0) && 0x0003;
 		// Read RB1..0 to the variable portVal
 		switch(portVal)
 		{
