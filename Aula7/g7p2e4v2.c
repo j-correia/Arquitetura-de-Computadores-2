@@ -1,5 +1,5 @@
 #include <detpic32.h>
-unsigned int v;
+volatile unsigned int v;
 
 void delay(int ms)
 {
@@ -89,41 +89,68 @@ void setPWM(unsigned int dutyCycle)
 	// duty_cycle must be in range [0, 100]
 	if(dutyCycle < 0 || dutyCycle > 100)
 		dutyCycle = 50;			// default
-	OC1RS = ((PR3+1)*dutyCycle)/100;
+	OC1RS = ((PR1+1)*dutyCycle)/100;
 	
 }
 
 int main(void)
 {
 	configureAll();
+	EnableInterrupts();
 	int dutyCycle;
-	EnableInterrupts();	// Global Interrupt Enable
+
+	TRISEbits.TRISE4 = 1;
+	TRISEbits.TRISE5 = 1;
+	TRISEbits.TRISE6 = 1;
+	TRISEbits.TRISE7 = 1;
+	T3CONbits.TCKPS = 2; // 1:256 prescaler (i.e fin = 78,125 KHz)
+
+	/* configuração da luz */
+	PR3 = 49999; // Fout = 20MHz / (32 * (39061,5 + 1)) = 2 Hz
+	TMR3 = 0; // Reset timer T3 count register
+	T3CONbits.TON = 1; // Enable timer T3 (must be the last command of the // timer configuration sequence)
+
+	OC1CONbits.OCM = 6;
+	OC1CONbits.OCTSEL = 1;
+	OC1CONbits.ON = 1;
+
 	while(1)
 	{
 		// Read RB1, RB0 to portVal
 		unsigned int portVal = (PORTBbits.RB1 << 1) + (PORTBbits.RB0);
+		//printStr("\r");
+		//printInt(portVal,10);
 		switch(portVal)
 		{
 			case 0:	// Measure input voltage
+				IEC1bits.AD1IE = 1;
 				// Enable T1 interrupts
-				T1CONbits.TON = 1;
+				IEC0bits.T1IE = 1;
 				setPWM(0);	// Led OFF
+				
 				break;
 			case 1:	// Freeze
+				IEC1bits.AD1IE = 0;
 				// Disable T1 interrupts
-				T1CONbits.TON = 1;
+				IEC0bits.T1IE = 0;
 				setPWM(100);	// LED ON
+			
 				break;
 			default:// LED brigthness control
+				IEC1bits.AD1IE = 1;
 				// Enable T1 interrupts
-				T1CONbits.TON = 1;
+				IEC0bits.T1IE = 1;
+//				int val  = ((v & 0xF0) >> 4) + (v & 0x0F);
 				dutyCycle = v * 3;
+				//printStr("\r");
+				//printf(v + " " + dutyCycle);
 				setPWM(dutyCycle);
 				break;
 		}
 	}
 	return 0;
 }
+
 
 // Interrupt Handler
 void _int_(27) isr_adc(void)	// Replace Vector by ADC
@@ -135,7 +162,7 @@ void _int_(27) isr_adc(void)	// Replace Vector by ADC
 	// print it
 	v = 0;
 	int *p = (int *)(&ADC1BUF0);
-	printStr("\r");
+	//printStr("\r");
 	for(; p <= (int *)(&ADC1BUF3); p+=4)
 	{
 		//printInt(*p, 10 | 4 << 16);
@@ -143,9 +170,9 @@ void _int_(27) isr_adc(void)	// Replace Vector by ADC
 		v += *p;
 	}
 	v = v / 4;
-	v = (v * 99 + 511)/1023;
-	printInt(v,10);
-	v = toBcd(v);
+	v = (v * 33 + 511)/1023;
+	//printInt(v,10);
+//	v = toBcd(v);
 	// Reset AD1IF
 	IFS1bits.AD1IF = 0;
 }
@@ -158,7 +185,7 @@ void _int_(4) isr_T1(void)
 
 void _int_(12) isr_T3(void)
 {
-	send2displays(v);
+	send2displays(toBcd(v));
 	IFS0bits.T3IF = 0;
 
 }

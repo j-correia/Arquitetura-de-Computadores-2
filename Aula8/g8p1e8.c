@@ -42,7 +42,7 @@ void configUart(unsigned int baud, char parity, unsigned int stopbits)
 	{
 		stopbits = 1;
 	}
-	// Configure UART1( 1152000, N, 8, 1)
+	// Configure UART1( 115200, N, 8, 1)
 	// 1 - Configure BaudRate Generator
 	U1BRG = ((20000000 + 8*baud)/(16*baud))-1;
 	U1MODEbits.BRGH = 0;
@@ -83,25 +83,17 @@ void configUart(unsigned int baud, char parity, unsigned int stopbits)
 
 int main(void)
 {
-	// Configure UART1( 600,'N',1)
-	//configUart(600,'N',1);
-	
-	// Configure UART1( 1200,'O',2)
-	//configUart( 1200,'O',2);
-	
-	// Configure UART1( 9600,'E',1)
-	//configUart( 9600,'E',1);
-	
-	// Configure UART1( 19200,'N',2)
-	//configUart( 19200,'N',2);
-	
-	// Configure UART1( 115200,'E',1)
-	configUart( 115200,'E',1);
-	
+	configUart(115200,'N',1); // default pterm
+	// config RB6 as output
+	LATBbits.LATB6 = 0;
+	PORTBbits.RB6 = 0;
 	while(1)
 	{
-		puts("String de teste\n");
-		delay(1000);
+		// set RB6
+		LATBbits.LATB6 = 1;
+		puts("1234");
+		// reset rB6
+		LATBbits.LATB6 = 0;
 	}
 	return 0;
 }
