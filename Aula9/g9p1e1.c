@@ -1,10 +1,10 @@
 #include <detpic32.h>
 #define DisableUart1RxInterrupt() IEC0bits.U1RXIE = 0
-#define EnableUart1RxInterrupt() IEC0bits.U1RXIE = 1
+#define EnableUart1RxInterrupt()  IEC0bits.U1RXIE = 1
 #define DisableUart1TxInterrupt() IEC0bits.U1TXIE = 0
-#define EnableUart1TxInterrupt() IEC0bits.U1TXIE = 1
-#define BUF_SIZE 8
-#define INDEX_MASK (BUF_SIZE - 1)
+#define EnableUart1TxInterrupt()  IEC0bits.U1TXIE = 1
+#define BUF_SIZE 		  8
+#define INDEX_MASK 		  (BUF_SIZE - 1)
 
 typedef struct
 {
@@ -12,6 +12,7 @@ typedef struct
 	unsigned int head;
 	unsigned int tail;
 	unsigned int count;
+	unsigned int overrun;
 }circularBuffer;
 
 volatile circularBuffer txb;	// Tx Buffer
@@ -23,8 +24,9 @@ void comDrv_flushRx(void)
 	rxb.head = 0;
 	rxb.tail = 0;
 	rxb.count = 0;
-	int i = 0;
-	for( ; i < BUF_SIZE; i++)
+	rxb.overrun = 0;
+	int i;
+	for( i = 0; i < BUF_SIZE; i++)
 	{
 		rxb.data[i] = 0;
 	}
@@ -36,8 +38,9 @@ void comDrv_flushTx(void)
 	txb.head = 0;
 	txb.tail = 0;
 	txb.count = 0;
-	int i = 0;
-	for( ; i < BUF_SIZE; i++)
+	txb.overrun = 0;
+	int i;
+	for( i = 0; i < BUF_SIZE; i++)
 	{
 		txb.data[i] = 0;
 	}
@@ -47,73 +50,29 @@ void comDrv_putc(char ch)
 {
 	while(txb.count == BUF_SIZE);	// Wait while Buffer is full
 	txb.data[txb.tail] = ch;	// Copy character to the Tx Buffer at position 'tail'
-	txb.tail = ( txb.tail + 1) & INDEX_MASK;	// Increment 'tail' index ( mod. BUF_SIZE)
+	txb.tail = ( ++txb.tail) & INDEX_MASK;	// Increment 'tail' index ( mod. BUF_SIZE)
 	DisableUart1TxInterrupt();	// Begin of critical section
 	txb.count++;			// Increment 'count'
-	EnableUart1Interrupt();		// End of critical section
+	EnableUart1TxInterrupt();		// End of critical section
 }
 
 void comDrv_puts(char *s)
 {
-	for( ; *s != '\0'; *s++)
+	for( ; *s != '\0'; s++)
 		comDrv_putc(*s);
 }
 
 char comDrv_getc(char *pchar)
 {
 	// Test 'count' variable (Rx Buffer) and return FALSE if zero
-	if(!rxb.count)
-		return 'FALSE';
+	if(rxb.count == 0)
+		return 0;
 	DisableUart1RxInterrupt();	// Begin of Critical Section
 	*pchar = rxb.data[rxb.head];	// Copy 'head' character to *pchar
 	rxb.count--;			// Decrement 'count'
-	rxb.head++;			// Increment 'head' ( mod BUF_SIZE)
+	rxb.head = (rxb.head + 1) & INDEX_MASK;// Increment 'head' ( mod BUF_SIZE)
 	EnableUart1RxInterrupt();	// End of Critical Section
-	return 'TRUE';
-}
-
-void _int_(24) isr_uart1(void)
-{
-	/*if(IFS0bits.U1EIF)
-	{
-		if(U1STAbits.OERR == 1)
-		{
-   			U1STAbits.OERR = 0;
-   		}
-   		else
-   		{
-   			int dump = U1RXREG;
-   		}
-   		IFS0bits.U1EIF = 0;
-	}*/
-	if(IFS0bits.U1TXIF)
-	{
-		if(txb.count > 0)
-		{
-			// Copy character pointed by 'head' to U1TXREG
- 			U1TXREG = txb.data[txb.head];
-			// Increment 'head' variable (mod BUF_SIZE)
-			txb.head++;
-			// Decrement 'count' variable
-			txb.count++;
-		}
-		if(!txb.count)
-			DisableUart1TxInterrupt();
-	}
-	IFS0bits.U1TXIF = 0;
-	if(IFS0bits.U1RXIF)
-	{
-		rxb.data[rxb.tail] = U1RXREG;	// Read character from UART and write
-						// write to rxb.tail position
-		// Increment 'tail' variable (mod BUF_SIZE)
-		rxb.tail++;
-		// If Rx Buffer is not full then increment 'count'
-		if(rxb.count < BUF_SIZE)
-			rxb.count++;
-		else
-			rxb.head++;
-	}
-	IFS0bits.U1RXIF = 0;
+	return 1;
 }
 
 void comDrv_config(unsigned int baud, char parity, unsigned int stopbits)
@@ -146,15 +105,15 @@ void comDrv_config(unsigned int baud, char parity, unsigned int stopbits)
 	*/
 	if(parity == 'N')
 	{
-		U1MODEbits.PDSEL = 00;
+		U1MODEbits.PDSEL = 0;
 	}
 	else if(parity == 'E')
 	{
-		U1MODEbits.PDSEL = 01;
+		U1MODEbits.PDSEL = 1;
 	}
 	else if(parity == 'O')
 	{
-		U1MODEbits.PDSEL = 10;
+		U1MODEbits.PDSEL = 0b10;
 	}
 	/*
 	STSEL: Stop Selection bit
@@ -171,16 +130,20 @@ void comDrv_config(unsigned int baud, char parity, unsigned int stopbits)
 	// 4 - Enable UART1 ( see register U1MODE)
 	U1MODEbits.ON = 1;
 	// Configure UART Interrupts
+	//DisableUart1TxInterrupt();
+	EnableUart1TxInterrupt();
+	EnableUart1RxInterrupt();
+	// Configurar prioridade
+	IPC6bits.U1IP = 3;
 	// Configuração do TX e RX para
 	U1STAbits.UTXSEL = 00;		// ativar posição livre
 	// ESTA PARTE ESTÁ MAL IMPLEMENTADA E NECESSITA DE REVISÃO
 	// O UTXSEL DEVIA SER UTXISEL
 	U1STAbits.URXISEL = 00;		// ativar leitura nova
 	// Configurar TX e RX para ativação/inativação
-	IEC0bits.U1TXIE = 0;
-	IEC0bits.U1RXIE = 1;
-	// Configurar prioridade
-	IPC6bits.U1IP = 3;
+	//IEC0bits.U1TXIE = 1;
+	//IEC0bits.U1RXIE = 1;
+	
 	// Configuar deteção de erros framming, overrun, parity
 	IEC0bits.U1EIE = 1;
 }
@@ -191,8 +154,57 @@ int main(void)
 	comDrv_flushRx();
 	comDrv_flushTx();
 	EnableInterrupts();
+	comDrv_puts("PIC32 UART Device-Driver\n");
+	char var;
 	while(1)
-		comDrv_puts("Teste do bloco de Tx do device driver.");
+	{	
+		comDrv_getc(&var);
+		comDrv_putc(var);
+	}
 	return 0;
 }
 
+void _int_(24) isr_uart1(void)
+{
+	if(IFS0bits.U1TXIF)
+	{
+		if(txb.count > 0)
+		{
+			while(U1STAbits.UTXBF == 0 && txb.count)
+			{
+				// Copy character pointed by 'head' to U1TXREG
+ 				U1TXREG = txb.data[txb.head];
+				// Increment 'head' variable (mod BUF_SIZE)
+				txb.head = (txb.head + 1) & INDEX_MASK;
+				// Decrement 'count' variable
+				txb.count--;
+			}
+		}
+		if(txb.count == 0)
+			DisableUart1TxInterrupt();
+		IFS0bits.U1TXIF = 0;
+	}
+	if(IFS0bits.U1RXIF)
+	{	
+		while(U1STAbits.URXDA && ( rxb.count < BUF_SIZE))
+		{
+			rxb.data[rxb.tail] = U1RXREG;	// Read character from UART and write
+						// write to rxb.tail position
+			// Increment 'tail' variable (mod BUF_SIZE)
+			rxb.tail = (txb.head + 1) & INDEX_MASK;
+			// If Rx Buffer is not full then increment 'count'
+			if(rxb.count < BUF_SIZE)
+			{
+				rxb.count++;
+				rxb.overrun = 0;
+			}
+			else
+			{
+				rxb.head++;
+				rxb.overrun = 1;
+				rxb.head = ( rxb.head + 1) & INDEX_MASK;
+			}
+		}
+		IFS0bits.U1RXIF = 0;
+	}
+}
