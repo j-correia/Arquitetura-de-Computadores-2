@@ -59,6 +59,9 @@ void configureAll(void)
 	IPC3bits.T3IP = 2;	// Interrupt Priority
 	IEC0bits.T3IE = 1;	// Enable T3 interrupts
 	IFS0bits.T3IF = 0;	// Reset Timer T3 IF
+	OC1CONbits.OCM = 6;
+	OC1CONbits.OCTSEL = 1;
+	OC1CONbits.ON = 1;
 	
 	// Configure all (digital I/O analog input, A/D module)
 	LATB = LATB & 0x80FF;
@@ -83,25 +86,59 @@ void configureAll(void)
 	IPC6bits.AD1IP = 2;	// Configure priority of A/D
 	IEC1bits.AD1IE = 1;	// enable A/D Interrupts
 	IFS1bits.AD1IF = 0;	// Reset AD1IF flag
+	// Misc
+	TRISB = (TRISB & 0xFFFC) | 0x0003;
+}
+
+void setPWM3(unsigned int dutyCycle)
+{
+	// Duty_cycle in range [0,100]
+	OC1RS = ((PR3+1)*dutyCycle)/100;
 }
 
 int main(void)
 {
 	configureAll();
-	while(1);
+	unsigned int portVal;
+	int dutyCycle;
+	while(1)
+	{
+		portVal = (PORTB & 0x3);
+		switch(portVal)
+		{
+			case 0:	// Measure input voltage
+				// Enable T1 interrupts
+				IEC0bits.T1IE = 1;	// Enable T1 interrupts
+				IEC1bits.AD1IE = 1;
+				setPWM3(0);	// LED off
+				break;
+			case 1:	// Freeze
+				// Disable T1 interrupt
+				IEC0bits.T1IE = 0;	// Disable T1 interrupts
+				IEC1bits.AD1IE = 0;
+				setPWM3(100);	// LED on
+				break;
+			default:// LED brigthness control
+				IEC1bits.AD1IE = 1;
+				// Enable T1 interrupts
+				IEC0bits.T1IE = 1;
+				dutyCycle = v*3;
+				setPWM3(dutyCycle);
+				break;
+		}
+	}
 	return 0;
 }
 
 void _int_(4) isr_T1(void)
 {
-	v = 0;
 	AD1CON1bits.ASAM = 1;
 	IFS0bits.T1IF = 0;
 }
 
 void _int_(12) isr_T3(void)
 {
-	send2displays(v);
+	send2displays(toBcd(v));
 	IFS0bits.T3IF = 0;
 }
 
@@ -113,6 +150,7 @@ void _int_(27) isr_adc(void)	// Replace Vector by ADC
 	// Print ADC1BUF0 value in 0x and 3 digits
 	// Read conversion result (ADC1BUF0 value)
 	// print it
+	v = 0;
 	int *p = (int *)(&ADC1BUF0);
 	//printStr("\r");
 	for(; p <= (int *)(&ADC1BUF7); p+=4)
@@ -123,7 +161,6 @@ void _int_(27) isr_adc(void)	// Replace Vector by ADC
 	}
 	v= v/8;
 	v = (v * 33 + 511)/1023;
-	v = toBcd(v);
 	// Reset AD1IF
 	IFS1bits.AD1IF = 0;
 }

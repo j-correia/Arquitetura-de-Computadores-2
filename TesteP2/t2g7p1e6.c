@@ -83,12 +83,21 @@ void configureAll(void)
 	IPC6bits.AD1IP = 2;	// Configure priority of A/D
 	IEC1bits.AD1IE = 1;	// enable A/D Interrupts
 	IFS1bits.AD1IF = 0;	// Reset AD1IF flag
+	// Misc Ports
+	TRISB = (TRISB & 0xFFFC) | 0x0003;
 }
 
 int main(void)
 {
 	configureAll();
-	while(1);
+	while(1)
+	{
+		//if((PORTB & 0x0002) == 0x0001)
+		if((PORTBbits.RB1 == 0) && (PORTBbits.RB0 == 1))
+			IEC0bits.T1IE = 0;
+		else
+			IEC0bits.T1IE = 1;
+	}
 	return 0;
 }
 
