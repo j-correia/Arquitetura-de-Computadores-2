@@ -17,7 +17,7 @@ void i2c1_start(void)
 	// Activate Sart event (I2C1CON, bit SEN)
 	I2C1CONbits.SEN = 1;
 	// Wait for completion of the Start event (I2C1CON, bit SEN)
-	while(I2C1CONbits.SEN != 1);
+	while(I2C1CONbits.SEN);
 }
 
 void i2c1_stop(void)
@@ -28,7 +28,7 @@ void i2c1_stop(void)
 	// Activate stop event (I2C1CON, bit PEN)
 	I2C1CONbits.PEN = 1;
 	// Wait for completio of the Stop event (I2C1CON, bit PEN)
-	while(I2C1CONbits.PEN != 1);
+	while(I2C1CONbits.PEN);
 }
 
 int i2c1_send(unsigned char value)
@@ -37,7 +37,7 @@ int i2c1_send(unsigned char value)
 	I2C1TRN = value;
 	// Wait while master Tx is in progress (8bits + ACK\)
 	//	(I2C1STAT, bit TRSTAT - Tx status bit)
-	while(I2C1STATbits.TRSTAT == 1);
+	while(I2C1STATbits.TRSTAT);
 	// Return acknowledge status bit (I2C1STAT, bit ACKSTAT)
 	return I2C1STATbits.ACKSTAT;
 }
