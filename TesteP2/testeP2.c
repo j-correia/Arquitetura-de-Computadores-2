@@ -7,11 +7,12 @@ int v;
 void delay(int ms)
 {
 	resetCoreTimer();
-	while(readCoreTimer() < 20000)
+	for(; ms > 0; ms--)
 	{
 		resetCoreTimer();
-		ms--;
+		while(readCoreTimer() < 20000);
 	}
+	
 }
 
 void configAll(void)
@@ -33,9 +34,21 @@ void configAll(void)
 	IPC3bits.T3IP = 2;
 	IEC0bits.T3IE = 1;	// Enable T3 interrups
 	IFS0bits.T3IF = 0;	// reset t3 flag
+	
+	// t2
+	T2CONbits.TCKPS = 6;
+	PR2 = 62499;
+	TMR2 = 0;
+	T2CONbits.TON = 1;
+	IPC2bits.T2IP = 2;
+	IEC0bits.T2IE = 1;
+	IFS0bits.T2IF = 0;
+	
+	// OCM
 	OC1CONbits.OCM = 6;
-	OC1CONbits.OCTSEL = 1;
+	OC1CONbits.OCTSEL = 0;
 	OC1CONbits.ON = 1;
+	
 	// analog
 	TRISBbits.TRISB4 = 1;	// RB4 digital output disconnect
 	AD1PCFGbits.PCFG4 = 0; 	// RB configured as analog input
@@ -85,15 +98,14 @@ int main(void)
 {
 	configAll();
 	int time = 0;
+	int verTime = 0;
 	while(1)
 	{
-		LATE = (LATE & 0xFFFC) | ((PORTB & 0x000C) >> 2);
-		if(time == 40000)
-		{
-			cont++;
-			time = 0;
-		}
-		time++;
+		cont++;
+		if(cont == 100)
+			cont = 0;
+		printInt10(cont);
+		delay(200);
 	}
 	return 0;
 }
@@ -108,7 +120,6 @@ void _int_(27) isr_ADC(void)
 	}
 	v = v/4;
 	v = (v * 99 + 511)/1023;
-	printInt10(v);
 	v = toBcd(v);
 	OC1RS = ((PR3 + 1) * v)/ 100;
 	IFS1bits.AD1IF = 0;
@@ -116,7 +127,13 @@ void _int_(27) isr_ADC(void)
 
 void _int_(12) isr_T3(void)
 {
-	send2displays(toBcd(cont));
+	LATE = (LATE & 0xFFFC) | ((PORTB & 0x000C) >> 2);
+	send2displays(v);	
 	AD1CON1bits.ASAM = 1;
 	IFS0bits.T3IF = 0;
+}
+
+void _int_(8) isr_T2(void)
+{
+	IFS0bits.T2IF = 0;
 }
